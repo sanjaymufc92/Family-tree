@@ -175,7 +175,29 @@ button:focus-visible,label.btn:focus-within{outline:2px solid var(--accent);outl
 .fam-main .fc.me{max-width:260px;border-color:transparent;box-shadow:var(--shadow)}
 .fam-main .fc.me .av{width:52px;height:52px;font-size:1.1rem}
 .fam-main .fc.me .n{font-size:1.15rem}
-.fam-sibs{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center}
+.fam-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.7fr) minmax(0,1fr);gap:4px 14px;width:100%;align-items:start}
+.fg-top{grid-column:1/-1;display:grid;justify-items:center;gap:4px}
+.fg-side{display:flex;flex-direction:column;gap:6px;min-width:0;padding-top:4px}
+.fg-left{align-items:flex-end}
+.fg-right{align-items:flex-start}
+.fg-lbl{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.fg-center{display:grid;justify-items:center;gap:4px;min-width:0}
+.fg-center .fam-row{width:100%}
+.fc.side{width:min(100%,230px);max-width:100%}
+@media (max-width:640px){
+  .fam{padding:14px 8px}
+  .fam-grid{grid-template-columns:minmax(0,.62fr) minmax(0,1.8fr) minmax(0,.62fr);column-gap:6px}
+  .fc.side{flex-direction:column;align-items:center;text-align:center;gap:3px;padding:6px 4px;width:100%}
+  .fc.side .av{width:28px;height:28px;font-size:.62rem}
+  .fc.side .n{font-size:.74rem}
+  .fc.side .v,.fc.side .mi,.fc.side .late-tag{display:none}
+  .fc.side .tx{justify-items:center}
+  .fam-main{padding:6px;gap:2px}
+  .fam-main .fc.me{max-width:100%}
+  .fam-main .fc.me .av{width:40px;height:40px;font-size:.9rem}
+  .fam-main .fc.me .n{font-size:1rem}
+  .fg-center .fc{max-width:100%}
+}
 .fam-acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:8px}
 .tree-empty{padding:28px 12px;text-align:center;color:var(--muted)}
 
@@ -1046,14 +1068,15 @@ function renderFamily(sel){
   };
   const gp = gpGroup(f, "Father's parents") + gpGroup(m, "Mother's parents");
   const empty = t => `<span class="fc empty">${t}</span>`;
-  /* brothers and sisters, eldest first, with this person in their place */
-  const sibs = siblingsOf(p).concat([p]).sort(ageSort);
-  const sibTag = s => { const c = sibCompare(s, p); return c ? `<span class="cnt">${c}</span>` : ""; };
+  /* elder brothers and sisters on the left, younger on the right */
+  const sorted = siblingsOf(p).concat([p]).sort(ageSort), at = sorted.findIndex(x => x.id === p.id);
+  const elder = sorted.slice(0, at), younger = sorted.slice(at + 1);
+  const side = (list, label) => list.length
+    ? `<div class="fg-lbl">${label}</div>` + list.map(s => famCard(s, "side", kidsTag(s))).join("")
+    : "";
   let partner = "";
-  if (sp) partner = KNOT + famCard(sp, "", kidsTag(sp) ? "" : "");
+  if (sp) partner = KNOT + famCard(sp);
   else if (p.spouseName && !unknownSpouse(p)) partner = KNOT + `<span class="fc empty">${esc(p.spouseName)}${p.spouseVillage ? " · " + esc(p.spouseVillage) : ""}</span>`;
-  const main = `<div class="fam-main">${famCard(p, "me")}${partner}</div>`;
-  const sibRow = sibs.map(s => s.id === p.id ? main : famCard(s, "sm", sibTag(s))).join("");
   const kids = childrenOf(p);
   const kidCards = kids.map(k => {
     const ks = spouseOf(k), extra = (ks ? `<span class="v">⚭ ${esc(ks.name)}</span>` : "") + kidsTag(k);
@@ -1064,20 +1087,27 @@ function renderFamily(sel){
       ${S.famHist.length ? `<button class="btn small" data-fam="back">← Back</button>` : "<span></span>"}
       ${get(S.me) && S.me !== p.id ? `<button class="btn small" data-fam="me">Show my family</button>` : ""}
     </div>
-    ${gp ? `<div class="fam-lbl">Grandparents</div><div class="fam-gp">${gp}</div><div class="fam-line"></div>` : ""}
-    <div class="fam-lbl">Parents</div>
-    <div class="fam-row">${f || m ? (f ? famCard(f) : empty("Father not added")) + (f && m ? KNOT : "") + (m ? famCard(m) : (f ? "" : "")) : empty("Parents not added")}</div>
-    <div class="fam-line"></div>
-    <div class="fam-lbl">${sibs.length > 1 ? "Brothers and sisters, eldest first" : "&nbsp;"}</div>
-    <div class="fam-sibs">${sibRow}</div>
-    <div class="fam-line"></div>
-    <div class="fam-lbl">Children${kids.length ? ", eldest first" : ""}</div>
-    <div class="fam-row">${kidCards || empty("No children added")}</div>
+    <div class="fam-grid">
+      <div class="fg-top">
+        ${gp ? `<div class="fam-lbl">Grandparents</div><div class="fam-gp">${gp}</div><div class="fam-line"></div>` : ""}
+        <div class="fam-lbl">Parents</div>
+        <div class="fam-row">${f || m ? (f ? famCard(f) : "") + (f && m ? KNOT : "") + (m ? famCard(m) : "") : empty("Parents not added")}</div>
+        <div class="fam-line"></div>
+      </div>
+      <div class="fg-side fg-left">${side(elder, "Elder")}</div>
+      <div class="fg-center">
+        <div class="fam-main">${famCard(p, "me")}${partner}</div>
+        <div class="fam-line"></div>
+        <div class="fam-lbl">${kids.length ? `${esc(p.name)}'s children, eldest first` : "Children"}</div>
+        <div class="fam-row">${kidCards || empty("No children added")}</div>
+      </div>
+      <div class="fg-side fg-right">${side(younger, "Younger")}</div>
+    </div>
     <div class="fam-acts">
       <button class="btn small primary" data-open="${esc(p.id)}">${esc(p.name)}'s details</button>
       <button class="btn small" data-fam="branch">See ${esc(p.name)}'s whole branch</button>
     </div>
-    <p class="meta" style="margin:8px 0 0;text-align:center">Tap anyone to move to their family.</p>
+    <p class="meta" style="margin:8px 0 0;text-align:center">Brothers and sisters are on the sides: elder on the left, younger on the right. Tap anyone to move to their family.</p>
   </div>`;
 }
 function scrollTreeToMe(){
