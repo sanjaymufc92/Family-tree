@@ -566,7 +566,7 @@ function applySkin(){
 }
 applySkin();
 
-const S = { people:new Map(), view: lsGet("vanshavali-me","") ? "me" : "tree", section:"family", focus:"", famHist:[], fold:new Map(), openDepth:1, usePath:true, needScroll:true, compact: lsGet("vanshavali-compact", false) === true, sisterId:"", seemai:"", places:new Map(), openPath:new Set(), vmem:new Map(), geoMode: lsGet("vanshavali-geomode","map") === "pic" ? "pic" : "map", hq:"", geoView:null, pinning:"", geoSel:"", lang: ["both","en","bd"].includes(lsGet("vanshavali-lang","both")) ? lsGet("vanshavali-lang","both") : "both", root:"", q:"", village:"", ready:false, canWrite:true, kind:"none",
+const S = { people:new Map(), view: lsGet("vanshavali-me","") ? "me" : "tree", section:"family", fstate:{}, fold:new Map(), openDepth:1, usePath:true, needScroll:true, compact: lsGet("vanshavali-compact", false) === true, sisterId:"", seemai:"", places:new Map(), openPath:new Set(), vmem:new Map(), geoMode: lsGet("vanshavali-geomode","map") === "pic" ? "pic" : "map", hq:"", geoView:null, pinning:"", geoSel:"", lang: ["both","en","bd"].includes(lsGet("vanshavali-lang","both")) ? lsGet("vanshavali-lang","both") : "both", root:"", q:"", village:"", ready:false, canWrite:true, kind:"none",
   assets:null, downloads:null, me:lsGet("vanshavali-me",""), relA:"", relB:"" };
 let backend = null;
 const get = id => id ? S.people.get(id) : null;
@@ -1015,15 +1015,15 @@ function sections(){
 }
 function renderSide(tree, sel, note, tools){
   const me = get(S.me);
-  const msg = t => { tree.innerHTML = `<div class="tree-empty">${t}</div>`; };
+  const msg = t => { $("fam-view").innerHTML = `<div class="fam"><div class="tree-empty">${t}</div></div>`; };
   tools.hidden = true;
   if (!me){ msg(`Choose who you are in the <button class="linkbtn" data-goto="me">Me tab</button> to see your family's sides.`); return; }
   let focus = null, root = null, hint = "";
   if (S.section === "father" || S.section === "mother"){
     const isF = S.section === "father", par = get(isF ? me.fatherId : me.motherId);
     if (!par){ msg(`Your ${isF?"father":"mother"} isn't added yet. Open <b>Me</b> and tap <b>Edit my profile</b> to add your ${isF?"father":"mother"}.`); return; }
-    focus = par; root = topOf(par);
-    if (root === par) hint = `Add ${esc(par.name)}'s parents (your grandparents on your ${isF?"father's":"mother's"} side) to see your uncles, aunts and cousins here.`;
+    focus = par; root = par;
+    if (!get(par.fatherId) && !get(par.motherId)) hint = `Add ${esc(par.name)}'s parents (your grandparents on your ${isF?"father's":"mother's"} side) to see your uncles, aunts and cousins here.`;
   } else if (S.section === "sister"){
     const sis = siblingsOf(me).filter(s => s.gender === "F");
     if (!sis.length){ msg("No sisters added yet. A sister shows here when she has the same father or mother as you."); return; }
@@ -1034,31 +1034,44 @@ function renderSide(tree, sel, note, tools){
     }
     focus = get(S.sisterId);
     const h = spouseOf(focus);
-    root = h ? topOf(h) : focus;
-    if (!h) hint = focus.spouseName ? `Add ${esc(focus.spouseName)} as a person, with his parents, to see his whole family here.` : `Add who ${esc(focus.name)} married to see her in-laws' family here.`;
-    else if (root === h) hint = `Add ${esc(h.name)}'s parents to see more of his family here.`;
+    root = h || focus;
+    if (!h) hint = focus.spouseName && !unknownSpouse(focus) ? `Add ${esc(focus.spouseName)} as a person, with his parents, to see his whole family here.` : `Add who ${esc(focus.name)} married, with his parents, to see her in-laws' family here.`;
+    else if (!get(h.fatherId) && !get(h.motherId)) hint = `Add ${esc(h.name)}'s parents to see more of his family here.`;
   } else {
     const sp = spouseOf(me);
     if (!sp){ msg(me.spouseName ? `${esc(me.spouseName)} isn't added as a person yet. Add them, with their parents, and link them as your spouse to see their family here.` : "No spouse added yet. Open <b>Me</b> and tap <b>Edit my profile</b> to add who you married."); return; }
-    focus = sp; root = topOf(sp);
-    if (root === sp) hint = `Add ${esc(sp.name)}'s parents to see ${sp.gender==="F"?"her":"his"} family here.`;
+    focus = sp; root = sp;
+    if (!get(sp.fatherId) && !get(sp.motherId)) hint = `Add ${esc(sp.name)}'s parents to see ${sp.gender==="F"?"her":"his"} family here.`;
   }
   const label = S.section === "sister" ? `${esc(focus.name)}'s married family` : S.section === "spouse" ? `${esc(focus.name)}'s family` : `your ${S.section === "father" ? "father" : "mother"} ${esc(focus.name)}'s family`;
-  note.hidden = false; note.innerHTML = `Showing <b>${label}</b>.${hint ? " " + hint : ""}`;
-  tree.innerHTML = "<ul>" + node(root, new Set(), 0) + "</ul>";
+  renderFamily(sel, root.id);
+  const now = get(famState().focus);
+  note.hidden = false;
+  note.innerHTML = now && now.id !== root.id
+    ? `Started from <b>${label}</b>. Now showing <b>${esc(now.name)}'s family</b>.`
+    : `Showing <b>${label}</b>.${hint ? " " + hint : ""}`;
 }
 function famCard(p, cls, extra){
   const y = years(p), mi = marriedInto(p);
   const line = [p.village, y].filter(Boolean).join(" · ");
   return `<button class="fc ${p.gender||""}${p.late?" late":""}${cls ? " " + cls : ""}" data-focus="${esc(p.id)}" aria-label="Show ${esc(p.name)}'s family">${av(p)}<span class="tx"><span class="n">${p.late?'<span class="late-tag">Late</span>':""}${esc(p.name)}${p.id===S.me?'<span class="you">you</span>':""}</span>${line ? `<span class="v">${esc(line)}</span>` : ""}${mi ? `<span class="mi">⚭ ${esc(mi)}</span>` : ""}${extra || ""}</span></button>`;
 }
-function renderFamily(sel){
-  const box = $("fam-view");
-  if (!get(S.focus)) S.focus = get(S.me) ? S.me : (rootCandidates()[0] || all()[0] || {}).id || "";
-  const p = get(S.focus); if (!p){ box.innerHTML = ""; return; }
-  $("root-lbl").textContent = "Show family of";
-  sel.innerHTML = all().sort(byName).map(x => `<option value="${esc(x.id)}">${esc(x.name)}${x.village ? " (" + esc(x.village) + ")" : ""}</option>`).join("");
-  sel.value = p.id;
+function famState(sec){
+  const k = sec || S.section;
+  if (!S.fstate[k]) S.fstate[k] = {focus:"", hist:[], start:""};
+  return S.fstate[k];
+}
+function famGo(id){ const st = famState(); if (id && id !== st.focus){ if (st.focus) st.hist.push(st.focus); if (st.hist.length > 50) st.hist.shift(); st.focus = id; } }
+function renderFamily(sel, startId){
+  const box = $("fam-view"), st = famState();
+  if (startId && st.start !== startId){ st.start = startId; st.focus = startId; st.hist = []; }
+  if (!get(st.focus)) st.focus = startId || (get(S.me) ? S.me : (rootCandidates()[0] || all()[0] || {}).id || "");
+  const p = get(st.focus); if (!p){ box.innerHTML = ""; return; }
+  if (S.section === "family"){
+    $("root-lbl").textContent = "Show family of";
+    sel.innerHTML = all().sort(byName).map(x => `<option value="${esc(x.id)}">${esc(x.name)}${x.village ? " (" + esc(x.village) + ")" : ""}</option>`).join("");
+    sel.value = p.id;
+  }
   const f = get(p.fatherId), m = get(p.motherId), sp = spouseOf(p);
   const kidsTag = x => { const n = childrenOf(x).length; return n ? `<span class="cnt">${n} ${n === 1 ? "child" : "children"}</span>` : ""; };
   const gpGroup = (par, who) => {
@@ -1084,8 +1097,9 @@ function renderFamily(sel){
   }).join("");
   box.innerHTML = `<div class="fam">
     <div class="fam-nav">
-      ${S.famHist.length ? `<button class="btn small" data-fam="back">← Back</button>` : "<span></span>"}
-      ${get(S.me) && S.me !== p.id ? `<button class="btn small" data-fam="me">Show my family</button>` : ""}
+      ${st.hist.length ? `<button class="btn small" data-fam="back">← Back</button>` : "<span></span>"}
+      ${st.start && st.start !== p.id && S.section !== "family" ? `<button class="btn small" data-fam="start">Back to start</button>`
+        : get(S.me) && S.me !== p.id ? `<button class="btn small" data-fam="me">Show my family</button>` : ""}
     </div>
     <div class="fam-grid">
       <div class="fg-top">
@@ -1121,14 +1135,14 @@ function renderTree(){
   const sel = $("root-sel"), tree = $("tree"), note = $("side-note"), tools = $("tree-tools");
   note.hidden = true; tools.hidden = false; tree.classList.remove("up");
   if (S.root && !get(S.root)) S.root = "";
-  const fam = S.section === "family";
+  const fam = !["whole","anc"].includes(S.section);
   $("fam-view").hidden = !fam; $("treecard").hidden = fam;
   $("fold-acts").hidden = fam || S.section === "anc";
   tree.classList.toggle("compact", S.compact); $("compact").checked = S.compact;
   S.openPath = get(S.me) && S.usePath ? pathTo(S.me) : new Set();
-  if (fam){ renderFamily(sel); return; }
+  if (S.section === "family"){ renderFamily(sel); return; }
   if (S.needScroll){ S.needScroll = false; requestAnimationFrame(scrollTreeToMe); }
-  if (!["whole","anc"].includes(S.section)){ renderSide(tree, sel, note, tools); return; }
+  if (fam){ renderSide(tree, sel, note, tools); return; }
   const people = all().sort(byName).map(p => `<option value="${esc(p.id)}">${esc(p.name)}${p.village?" ("+esc(p.village)+")":""}</option>`);
   if (S.section === "anc"){
     $("root-lbl").textContent = "Ancestors of";
@@ -2031,7 +2045,7 @@ $("sec-bar").addEventListener("click", e => {
 });
 $("root-sel").addEventListener("change", e => {
   if (S.section === "sister") S.sisterId = e.target.value;
-  else if (S.section === "family"){ if (S.focus && S.focus !== e.target.value) S.famHist.push(S.focus); S.focus = e.target.value; }
+  else if (S.section === "family") famGo(e.target.value);
   else { S.root = e.target.value; S.fold = new Map(); S.needScroll = true; }
   renderTree();
 });
@@ -2050,11 +2064,13 @@ $("fold-all").addEventListener("click", () => { S.fold = new Map(); S.openDepth 
 $("compact").addEventListener("change", e => { S.compact = e.target.checked; lsSet("vanshavali-compact", S.compact); renderTree(); });
 $("fam-view").addEventListener("click", e => {
   const f = e.target.closest("[data-focus]");
-  if (f){ if (f.dataset.focus !== S.focus){ S.famHist.push(S.focus); if (S.famHist.length > 50) S.famHist.shift(); S.focus = f.dataset.focus; renderTree(); $("fam-view").scrollIntoView({block:"nearest"}); } return; }
+  const st = famState();
+  if (f){ if (f.dataset.focus !== st.focus){ famGo(f.dataset.focus); renderTree(); $("fam-view").scrollIntoView({block:"nearest"}); } return; }
   const a = e.target.closest("[data-fam]"); if (!a) return;
-  if (a.dataset.fam === "back"){ S.focus = S.famHist.pop() || S.focus; renderTree(); }
-  else if (a.dataset.fam === "me"){ S.famHist.push(S.focus); S.focus = S.me; renderTree(); }
-  else if (a.dataset.fam === "branch"){ S.section = "whole"; S.root = S.focus; S.fold = new Map(); S.openDepth = 2; S.usePath = true; S.needScroll = true; renderTree(); }
+  if (a.dataset.fam === "back"){ st.focus = st.hist.pop() || st.focus; renderTree(); }
+  else if (a.dataset.fam === "me"){ famGo(S.me); renderTree(); }
+  else if (a.dataset.fam === "start"){ famGo(st.start); renderTree(); }
+  else if (a.dataset.fam === "branch"){ const from = st.focus; S.section = "whole"; S.root = from; S.fold = new Map(); S.openDepth = 2; S.usePath = true; S.needScroll = true; renderTree(); }
 });
 $("q").addEventListener("input", e => { S.q = e.target.value; renderList(); });
 $("vill-sel").addEventListener("change", e => { S.village = e.target.value; renderList(); });
@@ -2075,7 +2091,7 @@ $("me-body").addEventListener("click", e => {
   switch (b.dataset.act2){
     case "edit-me": if (me) openForm(me); break;
     case "anc-me": S.section = "anc"; S.root = S.me; S.view = "tree"; render(); break;
-    case "tree-me": S.section = "family"; S.focus = S.me; S.view = "tree"; render(); break;
+    case "tree-me": S.section = "family"; famState("family").focus = S.me; famState("family").hist = []; S.view = "tree"; render(); break;
     case "change-me": setMe(""); renderMe(); break;
   }
 });
@@ -2096,7 +2112,7 @@ document.addEventListener("click", e => {
       if (sp && sp.gender === "M" && p.gender !== "F"){ pre.fatherId = sp.id; pre.motherId = p.id; }
       openForm(null, pre);
     } break;
-    case "tree": S.section = "family"; if (S.focus && S.focus !== p.id) S.famHist.push(S.focus); S.focus = p.id; S.view = "tree"; closeDetail(); render(); break;
+    case "tree": S.section = "family"; famGo(p.id); S.view = "tree"; closeDetail(); render(); break;
     case "anc": S.section = "anc"; S.root = p.id; S.view = "tree"; closeDetail(); render(); break;
     case "me": setMe(p.id === S.me ? "" : p.id); toast(S.me ? `Set ${p.name} as you on this device` : "Cleared"); render(); break;
     case "del": confirming = true; showDetail(openId); break;
