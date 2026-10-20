@@ -501,7 +501,7 @@ function applySkin(){
 }
 applySkin();
 
-const S = { people:new Map(), view: lsGet("vanshavali-me","") ? "me" : "tree", section:"whole", sisterId:"", seemai:"", places:new Map(), geoMode: lsGet("vanshavali-geomode","map") === "pic" ? "pic" : "map", hq:"", geoView:null, pinning:"", geoSel:"", lang: ["both","en","bd"].includes(lsGet("vanshavali-lang","both")) ? lsGet("vanshavali-lang","both") : "both", root:"", q:"", village:"", ready:false, canWrite:true, kind:"none",
+const S = { people:new Map(), view: lsGet("vanshavali-me","") ? "me" : "tree", section:"whole", sisterId:"", seemai:"", places:new Map(), vmem:new Map(), geoMode: lsGet("vanshavali-geomode","map") === "pic" ? "pic" : "map", hq:"", geoView:null, pinning:"", geoSel:"", lang: ["both","en","bd"].includes(lsGet("vanshavali-lang","both")) ? lsGet("vanshavali-lang","both") : "both", root:"", q:"", village:"", ready:false, canWrite:true, kind:"none",
   assets:null, downloads:null, me:lsGet("vanshavali-me",""), relA:"", relB:"" };
 let backend = null;
 const get = id => id ? S.people.get(id) : null;
@@ -519,7 +519,10 @@ function localBackend(){
   const persist = () => lsSet(LKEY, all());
   const pl = lsGet("vanshavali-places", {});
   if (pl && typeof pl === "object") for (const [k, v] of Object.entries(pl)) S.places.set(k, v);
+  const vm = lsGet("vanshavali-vmem", {});
+  if (vm && typeof vm === "object") for (const [k, v] of Object.entries(vm)) if (v && v.seemai) S.vmem.set(k, v);
   return {
+    saveMem: async (k, v) => { S.vmem.set(k, v); lsSet("vanshavali-vmem", Object.fromEntries(S.vmem)); },
     savePlace: async (k, v) => { S.places.set(k, v); lsSet("vanshavali-places", Object.fromEntries(S.places)); render(); },
     newId: () => "p" + Date.now().toString(36) + Math.random().toString(36).slice(2,7),
     save: async p => { S.people.set(p.id, p); persist(); render(); },
@@ -543,6 +546,9 @@ async function init(){
     S.kind = "db";
     const pcol = db.collection("places");
     backend.savePlace = (k, v) => pcol.doc(k).set(v);
+    const mcol = db.collection("seemaimem");
+    backend.saveMem = (k, v) => { S.vmem.set(k, v); return mcol.doc(k).set(v); };
+    mcol.onSnapshot(snap => { S.vmem = new Map(snap.docs.map(d => [d.id, d.data()])); }, () => {});
     pcol.onSnapshot(snap => { S.places = new Map(snap.docs.map(d => [d.id, d.data()])); if (S.view === "vill") render(); }, () => {});
     col.onSnapshot(snap => {
       S.people = new Map(snap.docs.map(d => [d.id, {...d.data(), id:d.id}]));
@@ -763,7 +769,7 @@ const SEEMAI_DATA = {
   Mekkunadu: "Porore|Sogathore|Sakkalatti|Kethore|Denale|Dhoddani|Kil Odayaratti|Kodangatti|Kekkatti|Emakkatti|Ker kandi|Ellanalli|Hullada|Ketti Ooru|Ketti|Achanakal|Halada|Theda hatti|De hatti|Sora gundu|Kerada|Ken Kundhe|Kammandu|Mel Odayaratti|Thambatti|Adikaratti|Ane hatti|Mutti nadu|Oranai|Kattery|Nadu hatti|Thooratti|Kenduva|Koderi|Mel Koderi|Oor thittu|Allattane|Manja kambe|Denadu|Mynale|Kokkalada|Maasi kandi|Bengal|Kothi ben|Hulikkal|Panne bennu|Melur|Attu bayilu|Porthi|Bembatti|Belitho|Ithalar|Pudugatti|Thodhale|Dhodda appukodu|Umar kandi|Angidi hatti|Byge mandu|Osatti|Kallakore|Kariyalbe|Nunduva|Muduguva|Balakore|Meekeru|Manu hatti|Thangadu|Kanneri|Mandhane|Godalatti|Bikol|Kasole|Mel Osatti|Kil Osatti|Haraguchi|Bellada|Nai hatti|Are hatti|Aadakore|Thulidale|Mokkatty|Osa Attu Bayilu|Beingisakallu",
   Kundhe: "Mel Kundhe|Attu mannu|Mulli male|Nadu hatti|Kechigatti|Kerabadu|Karia male|Kandi bikke|Manjooru|Mani kallu|Kil Kundhe|Thooneri|Matta kandi|Bakore|Mullegooru|Osa hatti|Bikkatti|Kunjanare|Gundinaali|Mukki male|Kai kandi|Edakkadu thale hatti|Edakkadu nadu hatti|Sundatti|Kora Kundhe|Hayoor|Thorajada|Kombukorai|Thambatti"
 };
-const vnorm = s => norm(s).replace(/hati/g, "ati").replace(/(.)\1+/g, "$1");
+const vnorm = s => norm(String(s||"").replace(/y\b/gi, "i")).replace(/hati/g, "ati").replace(/(.)\1+/g, "$1");
 const VIDX = new Map();
 for (const [sm, str] of Object.entries(SEEMAI_DATA)) for (const n of str.split("|")){
   const k = vnorm(n); if (!k) continue;
@@ -782,9 +788,17 @@ function listLookup(village){
   vCache.set(k, hit); return hit;
 }
 /* seemai for a village: what this family already chose for it, else the list */
+/* one key per village, so spellings of the same hatti share a remembered seemai */
+function villageKey(village){
+  const k = vnorm(village); if (!k) return "";
+  const hit = listLookup(village);
+  return hit ? vnorm(hit.name) : k;
+}
 function lookupSeemai(village){
-  const k = vnorm(village); if (!k) return null;
-  const chosen = new Set(all().filter(p => p.seemai && p.seemai !== "other" && vnorm(p.village) === k).map(p => p.seemai));
+  const k = villageKey(village); if (!k) return null;
+  const mem = S.vmem.get(placeKey(k));
+  if (mem) return mem.seemai === "other" ? {seemais:[], name:village, src:"memory", other:true} : {seemais:[mem.seemai], name:mem.village || village, src:"memory"};
+  const chosen = new Set(all().filter(p => p.seemai && p.seemai !== "other" && villageKey(p.village) === k).map(p => p.seemai));
   if (chosen.size === 1) return {seemais:[...chosen], name:village, src:"tree"};
   const hit = listLookup(village);
   return hit ? {seemais:[...hit.seemais], name:hit.name, src:"list", fuzzy:!!hit.fuzzy} : null;
@@ -1387,11 +1401,13 @@ function render(){
   if (S.kind === "local"){ nt.hidden = false; nt.textContent = "Saved on this device only, in this browser. Use the Backup tab now and then to keep a copy."; }
   else if (!S.canWrite){ nt.hidden = false; nt.textContent = "You can view this family tree. Ask the owner for edit access to add or change people."; }
   else nt.hidden = true;
-  if (!render.dl || render.dlKey !== vs.join("|")){
-    render.dlKey = vs.join("|");
+  const dlKey = vs.join("|") + "#" + [...S.vmem.values()].map(m => m.seemai).join(",");
+  if (!render.dl || render.dlKey !== dlKey){
+    render.dlKey = dlKey;
     const seen = new Set(vs.map(vnorm));
-    const extra = [...VIDX.values()].filter(v => !seen.has(vnorm(v.name))).map(v => `<option value="${esc(v.name)}">${esc([...v.seemais].join(" / "))}</option>`);
-    $("villages").innerHTML = vs.map(v => `<option value="${esc(v)}">`).join("") + extra.join("");
+    const label = n => { const r = lookupSeemai(n); return r && r.seemais.length ? r.seemais.join(" / ") : ""; };
+    const extra = [...VIDX.values()].filter(v => !seen.has(vnorm(v.name))).map(v => `<option value="${esc(v.name)}">${esc(label(v.name))}</option>`);
+    $("villages").innerHTML = vs.map(v => `<option value="${esc(v)}">${esc(label(v))}</option>`).join("") + extra.join("");
     render.dl = true;
   }
   const empty = !S.ready || n === 0;
@@ -1466,6 +1482,8 @@ function autoSeemai(){
   if (seemaiManual || !v){ hint.hidden = true; if (!v && !seemaiManual) sel.value = ""; return; }
   const r = lookupSeemai(v);
   hint.hidden = false;
+  if (r && r.other){ sel.value = "other"; hint.textContent = `You marked ${v} as not a Badaga village before.`; return; }
+  if (r && r.src === "memory"){ sel.value = r.seemais[0]; hint.textContent = `${v} is in ${r.seemais[0]} seemai, as you chose before. Change it if this is a different ${v}.`; return; }
   if (!r){ sel.value = ""; hint.textContent = "This village isn't in the seemai list. Choose the seemai yourself and the app will remember it for this village."; return; }
   if (r.seemais.length === 1){
     sel.value = r.seemais[0];
@@ -1605,6 +1623,7 @@ $("pform").addEventListener("submit", async e => {
       } else { p.photoData = pendingPhoto.small; }
     }
     await savePerson(p, editing ? editing.spouseId : "");
+    await rememberSeemai(p.village, p.seemai);
     if (oldAsset && oldAsset !== p.photoId && S.assets){ try { await S.assets.delete(oldAsset); } catch(e2){} }
     if (addingMe && !editing){ setMe(p.id); }
     addingMe = false;
@@ -1620,6 +1639,13 @@ $("pform").addEventListener("submit", async e => {
   } finally { busy = false; $("f-save").disabled = false; }
 });
 
+async function rememberSeemai(village, seemai){
+  if (!village || !seemai || !backend.saveMem) return;
+  const k = villageKey(village), key = placeKey(k);
+  const cur = S.vmem.get(key) || S.vmem.get(k);
+  if (cur && cur.seemai === seemai) return;
+  try { await backend.saveMem(key, {village: village.trim().slice(0, 200), seemai}); } catch(e){}
+}
 async function deletePerson(id){
   const p = get(id); if (!p) return;
   for (const o of all()){
@@ -1676,7 +1702,7 @@ async function offer(filename, data){
 }
 function backupJSON(){
   const people = all().map(p => ({...p}));
-  return JSON.stringify({app:"vanshavali", version:3, exported:new Date().toISOString(), people, places:[...S.places.values()]}, null, 2);
+  return JSON.stringify({app:"vanshavali", version:3, exported:new Date().toISOString(), people, places:[...S.places.values()], seemaiMemory:[...S.vmem.values()]}, null, 2);
 }
 function csvCell(v){ v = String(v ?? ""); return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; }
 function toCSV(){
@@ -1748,7 +1774,7 @@ $("dl-ged").addEventListener("click", async () => {
   const blob = await zip.generateAsync({type:"blob"});
   offer(`vanshavali-gedcom-${stamp()}.zip`, blob);
 });
-let restoreData = null, restorePlaces = [];
+let restoreData = null, restorePlaces = [], restoreMem = [];
 const okPlace = v => v && typeof v.name === "string" && typeof v.lat === "number" && typeof v.lon === "number" && inBox(v.lat, v.lon);
 $("restore-file").addEventListener("change", async () => {
   const f = $("restore-file").files[0], out = $("restore-out"); if (!f) return;
@@ -1758,6 +1784,7 @@ $("restore-file").addEventListener("change", async () => {
     if (!Array.isArray(people) || !people.every(p => p && typeof p.id === "string" && typeof p.name === "string")) throw new Error("bad");
     restoreData = people.filter(p => /^[A-Za-z0-9_\-.~:@+]{1,200}$/.test(p.id));
     restorePlaces = Array.isArray(data.places) ? data.places.filter(okPlace) : [];
+    restoreMem = Array.isArray(data.seemaiMemory) ? data.seemaiMemory.filter(m => m && typeof m.village === "string" && (SEEMAIS.includes(m.seemai) || m.seemai === "other")) : [];
     const fresh = restoreData.filter(p => !get(p.id)).length;
     out.innerHTML = `<div class="confirm ok">This backup has ${restoreData.length} people: ${fresh} new and ${restoreData.length - fresh} already here (they will be updated).
       <div class="acts" style="margin-top:8px"><button class="btn primary small" id="restore-go">Restore ${restoreData.length} people</button><button class="btn small" id="restore-no">Cancel</button></div></div>`;
@@ -1776,6 +1803,7 @@ $("restore-out").addEventListener("click", async e => {
       if (typeof p.photoData === "string" && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(p.photoData) && p.photoData.length < 200000) c.photoData = p.photoData;
       await backend.save(c); done++;
     }
+    for (const m of restoreMem){ try { await rememberSeemai(m.village, m.seemai); } catch(e2){} }
     for (const v of restorePlaces){ try { await backend.savePlace(placeKey(v.name), {name:String(v.name).slice(0,200), lat:v.lat, lon:v.lon}); } catch(e2){} }
     $("restore-out").innerHTML = `<div class="confirm ok">Restored ${done} people.</div>`;
     S.view = "tree"; render();
