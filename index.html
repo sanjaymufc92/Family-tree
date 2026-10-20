@@ -913,6 +913,11 @@ function lev(a, b){
   }
   return prev[n];
 }
+function isAncestor(id, p, depth = 0){
+  if (!p || depth > 8) return false;
+  if (p.fatherId === id || p.motherId === id) return true;
+  return isAncestor(id, get(p.fatherId), depth + 1) || isAncestor(id, get(p.motherId), depth + 1);
+}
 function looksSame(a, b){
   if (a.id === b.id) return "";
   const na = norm(a.name), nb = norm(b.name); if (!na || !nb) return "";
@@ -924,6 +929,9 @@ function looksSame(a, b){
   if (a.fatherId && b.fatherId && a.fatherId !== b.fatherId) return "";
   if (a.motherId && b.motherId && a.motherId !== b.motherId) return "";
   if ([a.fatherId,a.motherId,a.spouseId].includes(b.id) || [b.fatherId,b.motherId,b.spouseId].includes(a.id)) return "";
+  /* a grandparent and grandchild often share a name; they are never the same person */
+  if (isAncestor(a.id, b) || isAncestor(b.id, a)) return "";
+  if (siblingsOf(a).some(x => x.id === b.id)) return "";
   const why = [d === 0 ? "Same name" : "Similar name"];
   if (a.village && b.village) why.push("same village");
   if (ya && yb) why.push(ya === yb ? "same birth year" : "birth years close");
