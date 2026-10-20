@@ -119,27 +119,64 @@ button:focus-visible,label.btn:focus-within{outline:2px solid var(--accent);outl
 .tree{--tl:color-mix(in srgb,var(--a1) 45%,var(--line))}
 .tree.up{transform:scaleY(-1)}
 .tree.up .couple{transform:scaleY(-1)}
-.tree ul{display:flex;justify-content:center;padding:26px 0 0;margin:0;position:relative}
-.tree>ul{padding-top:0;width:max-content;min-width:100%;gap:36px}
-.tree li{list-style:none;position:relative;padding:26px 6px 0;display:flex;flex-direction:column;align-items:center}
-.tree li::before,.tree li::after{content:"";position:absolute;top:0;right:50%;width:50%;height:26px;border-top:2px solid var(--tl)}
+.tree ul{display:flex;justify-content:center;padding:22px 0 0;margin:0;position:relative}
+.tree>ul{padding-top:0;width:max-content;min-width:100%;gap:24px}
+.tree li{list-style:none;position:relative;padding:22px 3px 0;display:flex;flex-direction:column;align-items:center}
+.tree li::before,.tree li::after{content:"";position:absolute;top:0;right:50%;width:50%;height:22px;border-top:2px solid var(--tl)}
 .tree li::after{right:auto;left:50%;border-left:2px solid var(--tl)}
 .tree li:only-child::before,.tree li:only-child::after{display:none}
 .tree li:only-child{padding-top:0}
 .tree li:first-child::before,.tree li:last-child::after{border:0 none}
 .tree li:last-child::before{border-right:2px solid var(--tl);border-radius:0 12px 0 0}
 .tree li:first-child::after{border-radius:12px 0 0 0}
-.tree ul ul::before{content:"";position:absolute;top:0;left:50%;height:26px;border-left:2px solid var(--tl)}
+.tree ul ul::before{content:"";position:absolute;top:0;left:50%;height:22px;border-left:2px solid var(--tl)}
 .tree>ul>li{padding-top:0}
 .tree>ul>li::before,.tree>ul>li::after{display:none}
-.couple{display:inline-flex;align-items:center;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:6px;box-shadow:var(--shadow)}
+.couple{display:inline-flex;align-items:center;gap:0;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:3px;box-shadow:0 1px 2px rgba(20,24,50,.06)}
 .knot{width:22px;height:14px;flex:none;color:var(--accent)}
-.pc{appearance:none;border:0;background:none;font:inherit;color:var(--ink);text-align:left;cursor:pointer;display:flex;align-items:center;gap:8px;padding:6px 10px 6px 6px;border-radius:14px;max-width:180px}
+.pc{appearance:none;border:0;background:none;font:inherit;color:var(--ink);text-align:left;cursor:pointer;display:flex;align-items:center;gap:6px;padding:4px 8px 4px 4px;border-radius:11px;max-width:150px}
+.pc .av{width:30px;height:30px;font-size:.7rem}
 .pc:hover{background:var(--surface-2)}
 .pc.out{cursor:default}
 .pc .tx{min-width:0;display:grid}
-.pc .n{font-family:var(--display);font-weight:600;font-size:.95rem;line-height:1.2;overflow-wrap:anywhere}
-.pc .v{font-size:.74rem;color:var(--muted);line-height:1.3;overflow-wrap:anywhere}
+.pc .n{font-family:var(--display);font-weight:600;font-size:.86rem;line-height:1.15;overflow-wrap:anywhere}
+.pc .v{font-size:.7rem;color:var(--muted);line-height:1.25;overflow-wrap:anywhere}
+.pc .mi,.fc .mi{font-size:.68rem;color:var(--accent);line-height:1.25}
+.knot{width:16px;height:11px}
+.tree.compact .pc .av,.tree.compact .pc .v{display:none}
+.tree.compact .pc{padding:4px 8px;max-width:120px}
+.tree.compact .pc .mi{display:block}
+.fold{appearance:none;font:inherit;font-family:var(--display);font-weight:700;font-size:.72rem;line-height:1;margin-top:-1px;padding:3px 8px;border-radius:999px;border:1.5px solid color-mix(in srgb,var(--a1) 45%,var(--line));background:var(--surface);color:var(--accent);cursor:pointer;position:relative;z-index:1}
+.fold[aria-expanded="false"]{background:linear-gradient(135deg,var(--a1),var(--a2));border-color:transparent;color:#fff}
+.tree-acts{margin-top:-6px}
+.cmp{display:inline-flex;align-items:center;gap:6px;font-size:.88rem;color:var(--ink);cursor:pointer}
+.cmp input{width:18px;height:18px;accent-color:var(--a1)}
+/* Family view */
+.fam{background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:16px 12px;display:grid;gap:4px;justify-items:center}
+.fam-nav{display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;width:100%;margin-bottom:6px}
+.fam-lbl{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-top:6px;text-align:center}
+.fam-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:stretch;max-width:100%}
+.fam-gp{display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:center}
+.fam-gp .grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap;justify-content:center}
+.fam-gp .who{font-size:.72rem;color:var(--muted)}
+.fam-line{width:2px;height:18px;background:color-mix(in srgb,var(--a1) 45%,var(--line))}
+.fc{appearance:none;font:inherit;color:var(--ink);text-align:left;cursor:pointer;display:flex;align-items:center;gap:8px;padding:6px 10px 6px 6px;border-radius:14px;border:1px solid var(--line);background:var(--surface);min-width:0;max-width:220px}
+.fc:hover{border-color:color-mix(in srgb,var(--a1) 50%,var(--line))}
+.fc .av{width:36px;height:36px;font-size:.8rem}
+.fc .tx{display:grid;min-width:0}
+.fc .n{font-family:var(--display);font-weight:600;font-size:.92rem;line-height:1.2;overflow-wrap:anywhere}
+.fc .v{font-size:.72rem;color:var(--muted);line-height:1.25;overflow-wrap:anywhere}
+.fc .cnt{font-size:.68rem;font-weight:700;color:var(--accent)}
+.fc.empty{cursor:default;color:var(--muted);border-style:dashed;font-size:.85rem;padding:10px 14px}
+.fc.sm{padding:4px 8px 4px 4px}
+.fc.sm .av{width:28px;height:28px;font-size:.66rem}
+.fc.sm .n{font-size:.84rem}
+.fam-main{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;padding:8px;border-radius:20px;background:linear-gradient(135deg,color-mix(in srgb,var(--a1) 14%,var(--surface)),color-mix(in srgb,var(--a2) 14%,var(--surface)));border:2px solid color-mix(in srgb,var(--a1) 55%,transparent)}
+.fam-main .fc.me{max-width:260px;border-color:transparent;box-shadow:var(--shadow)}
+.fam-main .fc.me .av{width:52px;height:52px;font-size:1.1rem}
+.fam-main .fc.me .n{font-size:1.15rem}
+.fam-sibs{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center}
+.fam-acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:8px}
 .tree-empty{padding:28px 12px;text-align:center;color:var(--muted)}
 
 /* People list */
@@ -315,8 +352,14 @@ form .check input{width:20px;height:20px;accent-color:var(--a1)}
       <label for="root-sel" id="root-lbl">Start from</label>
       <select id="root-sel"></select>
     </div>
+    <div class="toolbar tree-acts" id="fold-acts">
+      <button class="btn small" id="unfold-all">Open all</button>
+      <button class="btn small" id="fold-all">Fold all</button>
+      <label class="cmp" for="compact"><input type="checkbox" id="compact"> Names only</label>
+    </div>
     <p class="meta" id="side-note" hidden></p>
-    <div class="treecard"><div class="treebox"><div class="tree" id="tree"></div></div></div>
+    <div id="fam-view" hidden></div>
+    <div class="treecard" id="treecard"><div class="treebox"><div class="tree" id="tree"></div></div></div>
   </section>
 
   <section id="view-people" hidden>
@@ -501,7 +544,7 @@ function applySkin(){
 }
 applySkin();
 
-const S = { people:new Map(), view: lsGet("vanshavali-me","") ? "me" : "tree", section:"whole", sisterId:"", seemai:"", places:new Map(), vmem:new Map(), geoMode: lsGet("vanshavali-geomode","map") === "pic" ? "pic" : "map", hq:"", geoView:null, pinning:"", geoSel:"", lang: ["both","en","bd"].includes(lsGet("vanshavali-lang","both")) ? lsGet("vanshavali-lang","both") : "both", root:"", q:"", village:"", ready:false, canWrite:true, kind:"none",
+const S = { people:new Map(), view: lsGet("vanshavali-me","") ? "me" : "tree", section:"family", focus:"", famHist:[], fold:new Map(), openDepth:1, usePath:true, needScroll:true, compact: lsGet("vanshavali-compact", false) === true, sisterId:"", seemai:"", places:new Map(), openPath:new Set(), vmem:new Map(), geoMode: lsGet("vanshavali-geomode","map") === "pic" ? "pic" : "map", hq:"", geoView:null, pinning:"", geoSel:"", lang: ["both","en","bd"].includes(lsGet("vanshavali-lang","both")) ? lsGet("vanshavali-lang","both") : "both", root:"", q:"", village:"", ready:false, canWrite:true, kind:"none",
   assets:null, downloads:null, me:lsGet("vanshavali-me",""), relA:"", relB:"" };
 let backend = null;
 const get = id => id ? S.people.get(id) : null;
@@ -615,7 +658,8 @@ function relLine(p){
   const bits = [];
   if (f) bits.push((p.gender==="F"?"D/o ":p.gender==="M"?"S/o ":"Child of ") + f.name);
   const spName = sp ? sp.name : p.spouseName;
-  if (spName) bits.push((p.gender==="F"?"W/o ":p.gender==="M"?"H/o ":"Married to ") + spName);
+  if (unknownSpouse(p)) bits.push(marriedInto(p));
+  else if (spName) bits.push((p.gender==="F"?"W/o ":p.gender==="M"?"H/o ":"Married to ") + spName);
   return bits.join(" · ");
 }
 const years = p => p.born || p.died ? (p.born||"?") + (p.late ? "–" + (p.died||"?") : "") : "";
@@ -876,13 +920,25 @@ function findDups(){
 }
 
 /* ---------- render: tree ---------- */
+const unknownSpouse = p => !p.spouseId && /name not known/i.test(p.spouseName || "");
+const marriedInto = p => unknownSpouse(p) ? `Married into ${p.spouseVillage || "another family"}` : "";
 function chip(p){
-  const y = years(p);
-  return `<button class="pc ${p.gender||""}${p.late?" late":""}" data-open="${esc(p.id)}">${av(p)}<span class="tx"><span class="n">${p.late?'<span class="late-tag">Late</span>':""}${esc(p.name)}${p.example?'<span class="ex">ex</span>':""}${p.id===S.me?'<span class="you">you</span>':""}</span><span class="v">${esc(p.village||"")}${y&&p.village?" · ":""}${esc(y)}</span></span></button>`;
+  const y = years(p), mi = marriedInto(p);
+  return `<button class="pc ${p.gender||""}${p.late?" late":""}" data-open="${esc(p.id)}">${av(p)}<span class="tx"><span class="n">${p.late?'<span class="late-tag">Late</span>':""}${esc(p.name)}${p.example?'<span class="ex">ex</span>':""}${p.id===S.me?'<span class="you">you</span>':""}</span><span class="v">${esc(p.village||"")}${y&&p.village?" · ":""}${esc(y)}</span>${mi ? `<span class="mi">⚭ ${esc(mi.replace("Married into ", ""))}</span>` : ""}</span></button>`;
 }
 function outsiderChip(p){
   const g = p.gender==="M"?"F":p.gender==="F"?"M":"";
   return `<span class="pc out ${g}"><span class="av" aria-hidden="true"><i>${esc(initials(p.spouseName))}</i></span><span class="tx"><span class="n">${esc(p.spouseName)}</span><span class="v">${esc(p.spouseVillage||"Other family")}</span></span></span>`;
+}
+function descCount(p, seen = new Set()){
+  let n = 0;
+  for (const k of childrenOf(p)){ if (seen.has(k.id)) continue; seen.add(k.id); n += 1 + descCount(k, seen); }
+  return n;
+}
+function isOpen(p, sp, depth){
+  if (S.fold.has(p.id)) return S.fold.get(p.id);
+  if (sp && S.fold.has(sp.id)) return S.fold.get(sp.id);
+  return depth < S.openDepth || S.openPath.has(p.id) || (sp && S.openPath.has(sp.id));
 }
 function node(p, seen, depth){
   if (!p || seen.has(p.id) || depth > 40) return "";
@@ -891,9 +947,27 @@ function node(p, seen, depth){
   const kids = childrenOf(p).filter(k => !seen.has(k.id));
   let partner = "";
   if (sp) partner = KNOT + chip(sp);
-  else if (p.spouseName) partner = KNOT + outsiderChip(p);
-  const sub = kids.length ? "<ul>" + kids.map(k => node(k, seen, depth+1)).join("") + "</ul>" : "";
-  return `<li><div class="couple">${chip(p)}${partner}</div>${sub}</li>`;
+  else if (p.spouseName && !unknownSpouse(p)) partner = KNOT + outsiderChip(p);
+  let sub = "", btn = "";
+  if (kids.length){
+    const open = isOpen(p, sp, depth);
+    if (open) sub = "<ul>" + kids.map(k => node(k, seen, depth+1)).join("") + "</ul>";
+    else kids.forEach(k => markSeen(k, seen));
+    const n = descCount(p);
+    btn = `<button class="fold" data-fold="${esc(p.id)}" aria-expanded="${open}" aria-label="${open ? "Fold" : "Open"} ${esc(p.name)}'s family, ${n} people">${open ? "−" : "+" + n}</button>`;
+  }
+  return `<li><div class="couple">${chip(p)}${partner}</div>${btn}${sub}</li>`;
+}
+function markSeen(p, seen){ if (!p || seen.has(p.id)) return; seen.add(p.id); const sp = spouseOf(p); if (sp) seen.add(sp.id); childrenOf(p).forEach(k => markSeen(k, seen)); }
+/* people on the way from the top down to me, so my own branch opens by default */
+function pathTo(id){
+  const out = new Set(), spouses = new Set(), stack = [get(id)];
+  while (stack.length){
+    const x = stack.pop(); if (!x || out.has(x.id)) continue; out.add(x.id);
+    const sp = spouseOf(x); if (sp) spouses.add(sp.id);
+    stack.push(get(x.fatherId), get(x.motherId));
+  }
+  spouses.forEach(i => out.add(i)); out.delete(id); return out;
 }
 function ancLi(f, m, depth){
   if (!f && !m) return "";
@@ -915,7 +989,7 @@ function topOf(p){ let x = p, n = 0; while (x && n < 40){ const up = get(x.fathe
 function sections(){
   const me = get(S.me);
   const sp = me && me.gender === "F" ? "Husband's side" : me && me.gender === "M" ? "Wife's side" : "Spouse's side";
-  return [["whole","Whole tree"],["father","Father's side"],["mother","Mother's side"],["sister","Sister's side"],["spouse",sp],["anc","Ancestors"]];
+  return [["family","Family view"],["whole","Whole tree"],["father","Father's side"],["mother","Mother's side"],["sister","Sister's side"],["spouse",sp],["anc","Ancestors"]];
 }
 function renderSide(tree, sel, note, tools){
   const me = get(S.me);
@@ -951,11 +1025,79 @@ function renderSide(tree, sel, note, tools){
   note.hidden = false; note.innerHTML = `Showing <b>${label}</b>.${hint ? " " + hint : ""}`;
   tree.innerHTML = "<ul>" + node(root, new Set(), 0) + "</ul>";
 }
+function famCard(p, cls, extra){
+  const y = years(p), mi = marriedInto(p);
+  const line = [p.village, y].filter(Boolean).join(" · ");
+  return `<button class="fc ${p.gender||""}${p.late?" late":""}${cls ? " " + cls : ""}" data-focus="${esc(p.id)}" aria-label="Show ${esc(p.name)}'s family">${av(p)}<span class="tx"><span class="n">${p.late?'<span class="late-tag">Late</span>':""}${esc(p.name)}${p.id===S.me?'<span class="you">you</span>':""}</span>${line ? `<span class="v">${esc(line)}</span>` : ""}${mi ? `<span class="mi">⚭ ${esc(mi)}</span>` : ""}${extra || ""}</span></button>`;
+}
+function renderFamily(sel){
+  const box = $("fam-view");
+  if (!get(S.focus)) S.focus = get(S.me) ? S.me : (rootCandidates()[0] || all()[0] || {}).id || "";
+  const p = get(S.focus); if (!p){ box.innerHTML = ""; return; }
+  $("root-lbl").textContent = "Show family of";
+  sel.innerHTML = all().sort(byName).map(x => `<option value="${esc(x.id)}">${esc(x.name)}${x.village ? " (" + esc(x.village) + ")" : ""}</option>`).join("");
+  sel.value = p.id;
+  const f = get(p.fatherId), m = get(p.motherId), sp = spouseOf(p);
+  const kidsTag = x => { const n = childrenOf(x).length; return n ? `<span class="cnt">${n} ${n === 1 ? "child" : "children"}</span>` : ""; };
+  const gpGroup = (par, who) => {
+    if (!par) return "";
+    const g = [get(par.fatherId), get(par.motherId)].filter(Boolean);
+    return g.length ? `<div class="grp"><span class="who">${who}</span>${g.map(x => famCard(x, "sm")).join("")}</div>` : "";
+  };
+  const gp = gpGroup(f, "Father's parents") + gpGroup(m, "Mother's parents");
+  const empty = t => `<span class="fc empty">${t}</span>`;
+  /* brothers and sisters, eldest first, with this person in their place */
+  const sibs = siblingsOf(p).concat([p]).sort(ageSort);
+  const sibTag = s => { const c = sibCompare(s, p); return c ? `<span class="cnt">${c}</span>` : ""; };
+  let partner = "";
+  if (sp) partner = KNOT + famCard(sp, "", kidsTag(sp) ? "" : "");
+  else if (p.spouseName && !unknownSpouse(p)) partner = KNOT + `<span class="fc empty">${esc(p.spouseName)}${p.spouseVillage ? " · " + esc(p.spouseVillage) : ""}</span>`;
+  const main = `<div class="fam-main">${famCard(p, "me")}${partner}</div>`;
+  const sibRow = sibs.map(s => s.id === p.id ? main : famCard(s, "sm", sibTag(s))).join("");
+  const kids = childrenOf(p);
+  const kidCards = kids.map(k => {
+    const ks = spouseOf(k), extra = (ks ? `<span class="v">⚭ ${esc(ks.name)}</span>` : "") + kidsTag(k);
+    return famCard(k, "", extra);
+  }).join("");
+  box.innerHTML = `<div class="fam">
+    <div class="fam-nav">
+      ${S.famHist.length ? `<button class="btn small" data-fam="back">← Back</button>` : "<span></span>"}
+      ${get(S.me) && S.me !== p.id ? `<button class="btn small" data-fam="me">Show my family</button>` : ""}
+    </div>
+    ${gp ? `<div class="fam-lbl">Grandparents</div><div class="fam-gp">${gp}</div><div class="fam-line"></div>` : ""}
+    <div class="fam-lbl">Parents</div>
+    <div class="fam-row">${f || m ? (f ? famCard(f) : empty("Father not added")) + (f && m ? KNOT : "") + (m ? famCard(m) : (f ? "" : "")) : empty("Parents not added")}</div>
+    <div class="fam-line"></div>
+    <div class="fam-lbl">${sibs.length > 1 ? "Brothers and sisters, eldest first" : "&nbsp;"}</div>
+    <div class="fam-sibs">${sibRow}</div>
+    <div class="fam-line"></div>
+    <div class="fam-lbl">Children${kids.length ? ", eldest first" : ""}</div>
+    <div class="fam-row">${kidCards || empty("No children added")}</div>
+    <div class="fam-acts">
+      <button class="btn small primary" data-open="${esc(p.id)}">${esc(p.name)}'s details</button>
+      <button class="btn small" data-fam="branch">See ${esc(p.name)}'s whole branch</button>
+    </div>
+    <p class="meta" style="margin:8px 0 0;text-align:center">Tap anyone to move to their family.</p>
+  </div>`;
+}
+function scrollTreeToMe(){
+  const box = document.querySelector(".treebox"); if (!box || !box.clientWidth) return;
+  const you = $("tree").querySelector(".pc .you"), card = you && (you.closest(".couple") || you.closest(".pc"));
+  if (card){ const b = box.getBoundingClientRect(), r = card.getBoundingClientRect(); box.scrollLeft += r.left - b.left - (b.width - r.width) / 2; }
+  else box.scrollLeft = Math.max(0, (box.scrollWidth - box.clientWidth) / 2);
+}
 function renderTree(){
   $("sec-bar").innerHTML = sections().map(([k, l]) => `<button class="tab" role="tab" data-sec="${k}" aria-selected="${k === S.section}">${l}</button>`).join("");
   const sel = $("root-sel"), tree = $("tree"), note = $("side-note"), tools = $("tree-tools");
   note.hidden = true; tools.hidden = false; tree.classList.remove("up");
   if (S.root && !get(S.root)) S.root = "";
+  const fam = S.section === "family";
+  $("fam-view").hidden = !fam; $("treecard").hidden = fam;
+  $("fold-acts").hidden = fam || S.section === "anc";
+  tree.classList.toggle("compact", S.compact); $("compact").checked = S.compact;
+  S.openPath = get(S.me) && S.usePath ? pathTo(S.me) : new Set();
+  if (fam){ renderFamily(sel); return; }
+  if (S.needScroll){ S.needScroll = false; requestAnimationFrame(scrollTreeToMe); }
   if (!["whole","anc"].includes(S.section)){ renderSide(tree, sel, note, tools); return; }
   const people = all().sort(byName).map(p => `<option value="${esc(p.id)}">${esc(p.name)}${p.village?" ("+esc(p.village)+")":""}</option>`);
   if (S.section === "anc"){
@@ -1845,7 +1987,7 @@ $("skins").addEventListener("click", e => {
   const b = e.target.closest("[data-skin]"); if (!b) return;
   skin = b.dataset.skin; lsSet("vanshavali-skin2", skin); applySkin();
 });
-document.querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", () => { S.view = b.dataset.view; render(); }));
+document.querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", () => { S.view = b.dataset.view; if (S.view === "tree") S.needScroll = true; render(); }));
 function applyLang(){ document.querySelectorAll("[data-lang]").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === S.lang)); }
 applyLang();
 $("langs").addEventListener("click", e => {
@@ -1854,12 +1996,36 @@ $("langs").addEventListener("click", e => {
 });
 $("sec-bar").addEventListener("click", e => {
   const b = e.target.closest("[data-sec]"); if (!b) return;
-  if (S.section !== b.dataset.sec){ S.section = b.dataset.sec; S.root = ""; }
-  renderTree();
-  const box = document.querySelector(".treebox"); box.scrollLeft = Math.max(0, (box.scrollWidth - box.clientWidth) / 2);
+  if (S.section !== b.dataset.sec){ S.section = b.dataset.sec; S.root = ""; S.fold = new Map(); S.openDepth = 1; S.usePath = true; }
+  S.needScroll = true; renderTree();
 });
-$("root-sel").addEventListener("change", e => { if (S.section === "sister") S.sisterId = e.target.value; else S.root = e.target.value; renderTree(); });
-$("tree").addEventListener("click", e => { if (e.target.closest("[data-goto]")){ S.view = "me"; render(); } });
+$("root-sel").addEventListener("change", e => {
+  if (S.section === "sister") S.sisterId = e.target.value;
+  else if (S.section === "family"){ if (S.focus && S.focus !== e.target.value) S.famHist.push(S.focus); S.focus = e.target.value; }
+  else { S.root = e.target.value; S.fold = new Map(); S.needScroll = true; }
+  renderTree();
+});
+$("tree").addEventListener("click", e => {
+  if (e.target.closest("[data-goto]")){ S.view = "me"; render(); return; }
+  const b = e.target.closest("[data-fold]"); if (!b) return;
+  e.stopPropagation();
+  S.fold.set(b.dataset.fold, b.getAttribute("aria-expanded") !== "true");
+  const box = document.querySelector(".treebox"), before = b.getBoundingClientRect().left;
+  renderTree();
+  const again = $("tree").querySelector(`[data-fold="${CSS.escape(b.dataset.fold)}"]`);
+  if (again) box.scrollLeft += again.getBoundingClientRect().left - before;
+});
+$("unfold-all").addEventListener("click", () => { S.fold = new Map(); S.openDepth = 99; S.needScroll = true; renderTree(); });
+$("fold-all").addEventListener("click", () => { S.fold = new Map(); S.openDepth = 1; S.usePath = false; S.needScroll = true; renderTree(); });
+$("compact").addEventListener("change", e => { S.compact = e.target.checked; lsSet("vanshavali-compact", S.compact); renderTree(); });
+$("fam-view").addEventListener("click", e => {
+  const f = e.target.closest("[data-focus]");
+  if (f){ if (f.dataset.focus !== S.focus){ S.famHist.push(S.focus); if (S.famHist.length > 50) S.famHist.shift(); S.focus = f.dataset.focus; renderTree(); $("fam-view").scrollIntoView({block:"nearest"}); } return; }
+  const a = e.target.closest("[data-fam]"); if (!a) return;
+  if (a.dataset.fam === "back"){ S.focus = S.famHist.pop() || S.focus; renderTree(); }
+  else if (a.dataset.fam === "me"){ S.famHist.push(S.focus); S.focus = S.me; renderTree(); }
+  else if (a.dataset.fam === "branch"){ S.section = "whole"; S.root = S.focus; S.fold = new Map(); S.openDepth = 2; S.usePath = true; S.needScroll = true; renderTree(); }
+});
 $("q").addEventListener("input", e => { S.q = e.target.value; renderList(); });
 $("vill-sel").addEventListener("change", e => { S.village = e.target.value; renderList(); });
 $("seemai-sel").addEventListener("change", e => { S.seemai = e.target.value; renderList(); });
@@ -1879,7 +2045,7 @@ $("me-body").addEventListener("click", e => {
   switch (b.dataset.act2){
     case "edit-me": if (me) openForm(me); break;
     case "anc-me": S.section = "anc"; S.root = S.me; S.view = "tree"; render(); break;
-    case "tree-me": S.section = "whole"; S.root = S.me; S.view = "tree"; render(); break;
+    case "tree-me": S.section = "family"; S.focus = S.me; S.view = "tree"; render(); break;
     case "change-me": setMe(""); renderMe(); break;
   }
 });
@@ -1900,7 +2066,7 @@ document.addEventListener("click", e => {
       if (sp && sp.gender === "M" && p.gender !== "F"){ pre.fatherId = sp.id; pre.motherId = p.id; }
       openForm(null, pre);
     } break;
-    case "tree": S.section = "whole"; S.root = p.id; S.view = "tree"; closeDetail(); render(); break;
+    case "tree": S.section = "family"; if (S.focus && S.focus !== p.id) S.famHist.push(S.focus); S.focus = p.id; S.view = "tree"; closeDetail(); render(); break;
     case "anc": S.section = "anc"; S.root = p.id; S.view = "tree"; closeDetail(); render(); break;
     case "me": setMe(p.id === S.me ? "" : p.id); toast(S.me ? `Set ${p.name} as you on this device` : "Cleared"); render(); break;
     case "del": confirming = true; showDetail(openId); break;
