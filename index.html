@@ -330,6 +330,7 @@ form .check{display:flex;align-items:center;gap:8px;color:var(--ink);font-size:1
 form .check input{width:20px;height:20px;accent-color:var(--a1)}
 .photo-row{display:flex;gap:14px;align-items:center;margin-bottom:14px}
 .photo-row .av{width:72px;height:72px;font-size:1.5rem}
+.rel-hint{font-size:.74rem}
 .err{color:var(--danger);font-size:.88rem;min-height:1.2em;margin:0 0 8px}
 .err.warn{color:var(--warn)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 18px;border-radius:999px;z-index:20;font-size:.92rem;max-width:calc(100% - 32px);box-shadow:var(--shadow)}
@@ -511,10 +512,10 @@ form .check input{width:20px;height:20px;accent-color:var(--a1)}
       </div>
       <p class="meta" id="seemai-hint" style="margin:-6px 0 12px" hidden></p>
       <div class="two">
-        <div class="f"><label for="f-father">Father</label><select id="f-father"></select></div>
-        <div class="f"><label for="f-mother">Mother</label><select id="f-mother"></select></div>
+        <div class="f"><label for="f-father">Father</label><select id="f-father"></select><span class="meta rel-hint" id="f-father-hint"></span></div>
+        <div class="f"><label for="f-mother">Mother</label><select id="f-mother"></select><span class="meta rel-hint" id="f-mother-hint"></span></div>
       </div>
-      <div class="f"><label for="f-spouse">Married to</label><select id="f-spouse"></select></div>
+      <div class="f"><label for="f-spouse">Married to</label><select id="f-spouse"></select><span class="meta rel-hint" id="f-spouse-hint"></span></div>
       <div class="two" id="outsider" hidden>
         <div class="f"><label for="f-spname">Spouse's name</label><input id="f-spname" autocomplete="off"></div>
         <div class="f"><label for="f-spvillage">Spouse's village</label><input id="f-spvillage" list="villages" autocomplete="off"></div>
@@ -1656,7 +1657,7 @@ function showDetail(id){
       ${p.notes ? `<div><dt>Notes</dt><dd>${esc(p.notes)}</dd></div>` : ""}
     </dl>
     <div class="acts">
-      ${S.canWrite ? `<button class="btn primary small" data-act="edit">Edit</button><button class="btn small" data-act="child">Add child</button>` : ""}
+      ${S.canWrite ? `<button class="btn primary small" data-act="edit">Edit</button><button class="btn small" data-act="child">Add child</button>${!p.spouseId ? `<button class="btn small" data-act="spouse">${p.gender === "F" ? "Add husband" : p.gender === "M" ? "Add wife" : "Add spouse"}</button>` : ""}` : ""}
       <button class="btn small" data-act="tree">Their family</button>
       <button class="btn small" data-act="anc">Their ancestors</button>
       <button class="btn small" data-act="me">${p.id===S.me ? "Not me" : "This is me"}</button>
@@ -1696,6 +1697,100 @@ function fillSelect(el, list, val, blank){
   el.innerHTML = `<option value="">${blank}</option>` + list.map(p => `<option value="${esc(p.id)}">${esc(p.name)}${p.village?" ("+esc(p.village)+")":""}${p.born?" b."+esc(p.born):""}</option>`).join("");
   el.value = val || "";
 }
+/* ---------- smart suggestions for father, mother and married-to ---------- */
+const SHOW_ALL = "__all";
+let showAllRel = {father:false, mother:false, spouse:false};
+const optLabel = p => `${esc(p.name)}${p.village ? " (" + esc(p.village) + ")" : ""}${p.born ? " b." + esc(p.born) : ""}`;
+function formCtx(){
+  return { id: editing ? editing.id : "", name: $("f-name").value, gender: $("f-gender").value, born: parseInt($("f-born").value) || 0,
+    village: vnorm($("f-village").value), father: $("f-father").value, mother: $("f-mother").value, spouse: $("f-spouse").value };
+}
+function descendantsOf(id){
+  const out = new Set(), stack = [get(id)];
+  while (stack.length){ const x = stack.pop(); if (!x) continue; for (const k of all()) if ((k.fatherId === x.id || k.motherId === x.id) && !out.has(k.id)){ out.add(k.id); stack.push(k); } }
+  return out;
+}
+function ancestorsOf(ids){
+  const out = new Set(), stack = ids.map(get);
+  while (stack.length){ const x = stack.pop(); if (!x || out.has(x.id)) continue; out.add(x.id); stack.push(get(x.fatherId), get(x.motherId)); }
+  return out;
+}
+/* the village a person's household belongs to: a married woman's is her husband's */
+const homeVillage = p => { const sp = spouseOf(p); return vnorm(p.gender === "F" && sp ? sp.village : p.village); };
+/* "K.B. Bellie" -> "B": the initial just before the name, usually the father's */
+const fatherInitial = name => { const m = String(name || "").match(/([A-Za-z])\.\s*[A-Za-z]{2,}/); return m ? m[1].toUpperCase() : ""; };
+/* "B. Raman" -> "R", "Kulla Gowder" -> "K": the first letter of the name itself */
+const nameLetter = name => { const core = String(name || "").replace(/^([A-Za-z]{1,2}\.\s*)+/, "").trim(); return core ? core[0].toUpperCase() : ""; };
+const isParentOfSomeone = p => all().some(k => k.fatherId === p.id || k.motherId === p.id);
+const isPlaceholder = p => /^(first |second |third |fourth )?(son|daughter) of /i.test(p.name || "");
+function parentSuggestions(kind, c, current){
+  const want = kind === "father" ? "M" : "F", not = want === "M" ? "F" : "M";
+  const blocked = c.id ? descendantsOf(c.id) : new Set(); if (c.id) blocked.add(c.id);
+  const pool = all().filter(p => p.gender !== not && !blocked.has(p.id) && p.id !== c.spouse && !isPlaceholder(p));
+  const older = p => { const b = parseInt(p.born); return !c.born || !b || (c.born - b >= 14 && c.born - b <= 65); };
+  const picked = [], add = p => { if (p && pool.includes(p) && !picked.includes(p)) picked.push(p); };
+  const other = get(kind === "father" ? c.mother : c.father);
+  /* strongest clues: the other parent's husband or wife, and the parent of their other children */
+  if (other){
+    add(spouseOf(other));
+    all().filter(k => (kind === "father" ? k.motherId === other.id : k.fatherId === other.id) && k.id !== c.id)
+      .forEach(k => add(get(kind === "father" ? k.fatherId : k.motherId)));
+  }
+  if (current) add(current);
+  if (picked.length) return picked;
+  /* otherwise: people of the right age and village who already have a family */
+  const village = c.village || (other ? homeVillage(other) : "");
+  const gm = genMap(), pg = id => gm.get(id) || 1;
+  let rest = pool.filter(p => older(p) && (isParentOfSomeone(p) || p.spouseId) && (!village || homeVillage(p) === village)
+    && !(other && ((p.spouseId && p.spouseId !== other.id) || (!p.spouseId && p.spouseName)))     /* married to someone else */
+    && !(other && pg(other.id) > 1 && pg(p.id) > 1 && Math.abs(pg(p.id) - pg(other.id)) > 1));
+  /* the initial in the name points to the father: J. Devan -> a man whose name starts with J */
+  const ini = kind === "father" ? fatherInitial(c.name) : "";
+  if (ini){ const byIni = rest.filter(p => nameLetter(p.name) === ini); if (byIni.length) rest = byIni; }
+  const age = p => { const b = parseInt(p.born); return c.born && b ? Math.abs(c.born - b - 30) : 99; };
+  rest.sort((a, b) => (isParentOfSomeone(b) - isParentOfSomeone(a)) || age(a) - age(b) || byName(a, b)).forEach(add);
+  return picked;
+}
+function spouseSuggestions(c){
+  const not = c.gender === "M" ? "M" : c.gender === "F" ? "F" : "";
+  const blocked = c.id ? descendantsOf(c.id) : new Set(); if (c.id) blocked.add(c.id);
+  ancestorsOf([c.father, c.mother]).forEach(i => blocked.add(i));
+  for (const p of all()) if ((c.father && p.fatherId === c.father) || (c.mother && p.motherId === c.mother)) blocked.add(p.id);   /* brothers and sisters */
+  /* aunts and uncles (parents' brothers and sisters), nieces and nephews */
+  for (const par of [get(c.father), get(c.mother)]) if (par) siblingsOf(par).forEach(x => blocked.add(x.id));
+  const sibIds = [...blocked].filter(i => { const x = get(i); return x && ((c.father && x.fatherId === c.father) || (c.mother && x.motherId === c.mother)); });
+  for (const k of all()) if (sibIds.includes(k.fatherId) || sibIds.includes(k.motherId)) blocked.add(k.id);
+  const near = p => { const b = parseInt(p.born); return !c.born || !b || Math.abs(c.born - b) <= 25; };
+  /* same generation, give or take one, when both are placed in the tree */
+  const gm = genMap(), pg = id => gm.get(id) || 1;
+  const cGen = c.father || c.mother ? 1 + Math.max(get(c.father) ? pg(c.father) : 0, get(c.mother) ? pg(c.mother) : 0) : (c.id ? pg(c.id) : 1);
+  const sameGen = p => cGen === 1 || pg(p.id) === 1 || Math.abs(pg(p.id) - cGen) <= 1;
+  const married = p => (p.spouseId && p.spouseId !== c.id) || (!p.spouseId && p.spouseName);
+  return all().filter(p => !blocked.has(p.id) && (!not || p.gender !== not) && !isPlaceholder(p)
+      && !married(p) && near(p) && sameGen(p))
+    .sort((a, b) => { const ab = parseInt(a.born), bb = parseInt(b.born);
+      if (c.born && ab && bb) return Math.abs(c.born - ab) - Math.abs(c.born - bb);
+      return byName(a, b); });
+}
+function smartFill(kind){
+  const el = $("f-" + kind), c = formCtx(), keep = el.value;
+  const blank = kind === "spouse" ? "Not married / unknown" : "Not in tree / unknown";
+  let list;
+  if (showAllRel[kind]){
+    const not = kind === "father" ? "F" : kind === "mother" ? "M" : (c.gender === "M" ? "M" : c.gender === "F" ? "F" : "");
+    list = all().filter(p => p.id !== c.id && (!not || p.gender !== not)).sort(byName);
+  } else list = kind === "spouse" ? spouseSuggestions(c) : parentSuggestions(kind, c, get(keep));
+  const cur = get(keep); if (cur && !list.includes(cur)) list.unshift(cur);
+  const label = showAllRel[kind] ? "Everyone" : (list.length ? "Suggested" : "");
+  el.innerHTML = `<option value="">${blank}</option>`
+    + (list.length ? `<optgroup label="${label}">${list.map(p => `<option value="${esc(p.id)}">${optLabel(p)}</option>`).join("")}</optgroup>` : "")
+    + (showAllRel[kind] ? "" : `<option value="${SHOW_ALL}">Show everyone…</option>`)
+    + (kind === "spouse" ? '<option value="__other">Someone not in the tree…</option>' : "");
+  el.value = keep && [...el.options].some(o => o.value === keep) ? keep : "";
+  const n = list.length, hint = $("f-" + kind + "-hint");
+  if (hint) hint.textContent = showAllRel[kind] ? `Showing all ${n}` : n ? `${n} suggested` : "No one fits yet. Tap “Show everyone…”";
+}
+function refreshRelLists(){ for (const k of ["father","mother","spouse"]) smartFill(k); }
 function photoPreview(){
   const prev = $("f-photo-prev"), g = $("f-gender").value, name = $("f-name").value || "?";
   prev.className = "av " + g;
@@ -1706,17 +1801,17 @@ function photoPreview(){
 function openForm(p, preset){
   editing = p || null; pendingPhoto = null; removePhoto = false; dupAck = "";
   const d = p || preset || {};
-  $("form-title").textContent = p ? "Edit " + p.name : "Add person";
+  $("form-title").textContent = p ? "Edit " + p.name : (preset && preset._title) || "Add person";
   $("f-name").value = d.name || ""; $("f-gender").value = d.gender || ""; $("f-born").value = d.born || "";
   $("f-order").value = d.order || "";
   $("f-village").value = d.village || ""; $("f-notes").value = d.notes || "";
   $("f-seemai").value = d.seemai || ""; seemaiManual = !!d.seemai; autoSeemai();
   $("f-late").checked = !!d.late; $("f-died").value = d.died || ""; $("died-f").hidden = !d.late;
-  const others = all().filter(x => !p || x.id !== p.id).sort(byName);
-  fillSelect($("f-father"), others.filter(x => x.gender !== "F"), d.fatherId, "Not in tree / unknown");
-  fillSelect($("f-mother"), others.filter(x => x.gender !== "M"), d.motherId, "Not in tree / unknown");
-  fillSelect($("f-spouse"), others, d.spouseId, "Not married / unknown");
-  $("f-spouse").insertAdjacentHTML("beforeend", '<option value="__other">Someone not in this list…</option>');
+  showAllRel = {father:false, mother:false, spouse:false};
+  for (const [k, v] of [["father", d.fatherId], ["mother", d.motherId], ["spouse", d.spouseId]]){
+    const el = $("f-" + k); el.innerHTML = v ? `<option value="${esc(v)}">x</option>` : ""; el.value = v || "";
+  }
+  refreshRelLists();
   if (!d.spouseId && d.spouseName) $("f-spouse").value = "__other";
   $("f-spname").value = d.spouseName || ""; $("f-spvillage").value = d.spouseVillage || "";
   $("outsider").hidden = $("f-spouse").value !== "__other";
@@ -1727,7 +1822,23 @@ function openForm(p, preset){
   $("formwrap").hidden = false;
   setTimeout(() => $("f-name").focus(), 50);
 }
-$("f-spouse").addEventListener("change", () => { $("outsider").hidden = $("f-spouse").value !== "__other"; });
+function relChanged(kind){
+  const el = $("f-" + kind);
+  if (el.value === SHOW_ALL){ showAllRel[kind] = true; el.value = ""; smartFill(kind); el.focus(); return; }
+  /* picking one parent fills in the other when they're married */
+  if (kind === "father" && el.value && !$("f-mother").value){ const w = spouseOf(get(el.value)); if (w && w.gender !== "M"){ smartFill("mother"); $("f-mother").value = w.id; } }
+  if (kind === "mother" && el.value && !$("f-father").value){ const h = spouseOf(get(el.value)); if (h && h.gender !== "F"){ smartFill("father"); $("f-father").value = h.id; } }
+  for (const k of ["father","mother","spouse"]) if (k !== kind) smartFill(k);
+  if (kind === "spouse") $("outsider").hidden = el.value !== "__other";
+}
+$("f-father").addEventListener("change", () => relChanged("father"));
+$("f-mother").addEventListener("change", () => relChanged("mother"));
+$("f-spouse").addEventListener("change", () => relChanged("spouse"));
+let relT; const relLater = () => { clearTimeout(relT); relT = setTimeout(refreshRelLists, 300); };
+$("f-born").addEventListener("input", relLater);
+$("f-village").addEventListener("input", relLater);
+$("f-name").addEventListener("input", relLater);
+$("f-gender").addEventListener("change", refreshRelLists);
 $("f-late").addEventListener("change", () => { $("died-f").hidden = !$("f-late").checked; });
 $("f-gender").addEventListener("change", photoPreview);
 $("f-name").addEventListener("input", () => { dupAck = ""; if (!pendingPhoto && !(editing && photoSrc(editing))) photoPreview(); });
@@ -2114,8 +2225,16 @@ document.addEventListener("click", e => {
   switch (a.dataset.act){
     case "close": closeDetail(); break;
     case "edit": closeDetail(); openForm(p); break;
+    case "spouse": closeDetail(); {
+      const pre = {spouseId: p.id, gender: p.gender === "M" ? "F" : p.gender === "F" ? "M" : "", born: "",
+        village: unknownSpouse(p) ? p.spouseVillage : "", _title: `Add ${p.name}'s ${p.gender === "F" ? "husband" : p.gender === "M" ? "wife" : "spouse"}`};
+      openForm(null, pre);
+    } break;
     case "child": closeDetail(); {
-      const sp = spouseOf(p); const pre = {village: p.village};
+      const sp = spouseOf(p);
+      /* a married daughter's children belong to her husband's village */
+      const pre = {village: p.gender === "F" ? (sp ? sp.village : unknownSpouse(p) ? p.spouseVillage : p.village) : p.village,
+        _title: `Add ${p.name}'s child`};
       if (p.gender === "F"){ pre.motherId = p.id; if (sp) pre.fatherId = sp.id; } else { pre.fatherId = p.id; if (sp) pre.motherId = sp.id; }
       if (sp && sp.gender === "M" && p.gender !== "F"){ pre.fatherId = sp.id; pre.motherId = p.id; }
       openForm(null, pre);
